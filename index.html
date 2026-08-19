@@ -1648,23 +1648,71 @@ m1(g){ // المصمك: أسوار طينية، ٤ أبراج أسطوانية،
   palm3(g,.6,7.2,1);
   return 7;
 },
-m2(g){ // الفيصلية: هرم رشيق بحواف ذهبية وكرة قرب القمة
-  const c=T3;
-  bx(g,6.4,1,6.4,c,0,c,0xD3DBE2,{recv:true});
-  const geo=new THREE.ConeGeometry(3.5,14.5,4);
-  const py=mesh(geo,M3(0x9FB8CE,{ph:1,sh:100}),c,1+7.25,c,g);
-  py.rotation.y=Math.PI/4;
-  const eg=new THREE.LineSegments(new THREE.EdgesGeometry(geo),
-    new THREE.LineBasicMaterial({color:0xD9BC7E}));
-  eg.rotation.y=Math.PI/4;eg.position.copy(py.position);g.add(eg);
-  const ball=sph(g,1.05,c,1+14.5*.84,c,0xF2C14E,{ph:1,sh:90,e:0xF2B23E,ei:.25});
-  const glow=lampAt(g,c,1+14.5*.84,c,0xFFCE63,1.6);
-  cone(g,.34,1.4,c,15,c,0x5F7B96,{ry:Math.PI/4,seg:4});
-  return 16;
+m2(g){ // الفيصلية: هرم زجاجي بأضلاع ذهبية وكرة مضيئة
+  const c=T3, H2=14.2, R2=3.4, base=1.5;
+  // منصة مدرجة
+  bx(g,7.2,.6,7.2,c,0,c,0xD8DFE6,{recv:true});
+  bx(g,6.2,.5,6.2,c,.6,c,0xCBD4DC);
+  bx(g,5.2,.4,5.2,c,1.1,c,0xE2E8EE);
+  // مدخل مقوس
+  bx(g,2.2,1.3,.5,c,1.5,c+2.5,0x8FA6BC);
+  cyl(g,1.1,1.1,.5,c,2.8,c+2.5,0x8FA6BC).rotation.x=Math.PI/2;
+  // واجهة الهرم: خامة زجاج بنوافذ نهار/ليل
+  const fDay=makeTex('fslD',128,256,(x2)=>{
+    const gr=x2.createLinearGradient(0,256,0,0);
+    gr.addColorStop(0,'#7E99AE');gr.addColorStop(.5,'#A9C2D4');gr.addColorStop(1,'#D4E4EE');
+    x2.fillStyle=gr;x2.fillRect(0,0,128,256);
+    x2.strokeStyle='rgba(50,70,90,.5)';x2.lineWidth=1.6;
+    for(let x=8;x<128;x+=12){x2.beginPath();x2.moveTo(x,0);x2.lineTo(x,256);x2.stroke();}
+    x2.strokeStyle='rgba(40,60,80,.55)';x2.lineWidth=2.2;
+    for(let y=14;y<256;y+=17){x2.beginPath();x2.moveTo(0,y);x2.lineTo(128,y);x2.stroke();}
+    x2.fillStyle='rgba(255,255,255,.28)';
+    x2.beginPath();x2.moveTo(0,256);x2.lineTo(52,0);x2.lineTo(84,0);x2.lineTo(30,256);x2.closePath();x2.fill();
+  });
+  const fNight=makeTex('fslN',128,256,(x2)=>{
+    x2.fillStyle='#141E28';x2.fillRect(0,0,128,256);
+    for(let y=14;y<256;y+=17)for(let x=8;x<128;x+=12){
+      if(((x*7+y*13)%23)<8){x2.fillStyle='#FFD57A';x2.fillRect(x-4,y-6,9,12);}
+    }
+  });
+  const fm=new THREE.MeshPhongMaterial({map:fDay,shininess:80,specular:0x8899AA});
+  WINSW.push({mat:fm,day:fDay,night:fNight});
+  const py=new THREE.Mesh(new THREE.ConeGeometry(R2,H2,4),fm);
+  py.position.set(c,base+H2/2,c);py.rotation.y=Math.PI/4;
+  py.castShadow=true;g.add(py);
+  // أضلاع ذهبية على الحواف الأربع
+  const eLen=Math.hypot(R2,H2);
+  for(let i=0;i<4;i++){
+    const a=Math.PI/4+i*Math.PI/2;
+    const bxp=c+Math.cos(a)*R2, bzp=c+Math.sin(a)*R2;
+    const rib=cyl(g,.07,.09,eLen,0,0,0,0xD9BC7E,{ph:1,sh:60});
+    rib.position.set((bxp+c)/2,base+H2/2,(bzp+c)/2);
+    const dir=new THREE.Vector3(c-bxp,H2,c-bzp).normalize();
+    rib.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
+  }
+  // أحزمة أفقية فولاذية
+  for(let i=1;i<6;i++){
+    const hy=base+H2*i/6, w2=R2*(1-i/6)*1.42+.1;
+    const band=bx(g,w2,.12,w2,c,hy,c,0x6E8296);
+    band.rotation.y=Math.PI/4;
+  }
+  // الكرة الذهبية بمطعم The Globe
+  const ball=sph(g,1.15,c,base+H2*.83,c,0xF2C14E,{ph:1,sh:100,e:0xF2B23E,ei:.28});
+  const ring=mesh(new THREE.TorusGeometry(1.15,.06,8,24),M3(0xC9A227),c,base+H2*.83,c,g);
+  ring.rotation.x=Math.PI/2.6;
+  lampAt(g,c,base+H2*.83,c,0xFFCE63,1.7);
+  // الفانوس والقمة
+  bx(g,1,1,1,c,base+H2-.4,c,0x9FB3C4).rotation.y=Math.PI/4;
+  cone(g,.3,1.5,c,base+H2+.5,c,0x5F7B96,{ry:Math.PI/4,seg:4});
+  cyl(g,.03,.03,1.2,c,base+H2+1.9,c,0xC9D6E2);
+  return 18;
 },
-m3(g){ // برج المملكة: قوس مكافئ حقيقي بالبثق + جسر المشاهدة
+m3(g){ // برج المملكة: زجاج فضي وقوس ذهبي وجسر سماوي
   const c=T3;
-  bx(g,6.6,.9,6.6,c,0,c,0xDAD4C8,{recv:true});
+  // منصة مدرجة ومدخل
+  bx(g,7,.6,7,c,0,c,0xD6D0C4,{recv:true});
+  bx(g,5.6,.5,5.6,c,.6,c,0xC8C2B6);
+  bx(g,2.4,1.1,.5,c,1.1,c+2.6,0x8FA6BC);
   const sh=new THREE.Shape();
   sh.moveTo(-2.4,0);sh.lineTo(-2.4,8.2);
   sh.bezierCurveTo(-2.4,12.6,-1.1,14.6,0,14.8);
@@ -1676,16 +1724,53 @@ m3(g){ // برج المملكة: قوس مكافئ حقيقي بالبثق + ج�
   hole.lineTo(-1.15,14.1);
   sh.holes.push(hole);
   const geo=new THREE.ExtrudeGeometry(sh,{depth:2.1,bevelEnabled:true,bevelSize:.1,bevelThickness:.1,bevelSegments:2,curveSegments:18});
-  const tw=mesh(geo,M3(0xBFD3E4,{ph:1,sh:120}),c,.9,c+1.05,g);
+  const tw=mesh(geo,M3(0xCBD9E6,{ph:1,sh:130}),c,1.1,c+1.05,g);
   tw.rotation.y=Math.PI;
-  // جسر المشاهدة أعلى الفتحة
-  bx(g,3,.4,1.3,c,.9+14.05,c,0x8FA6BC);
-  for(let i=0;i<5;i++){const wm=new THREE.MeshLambertMaterial({color:0x222b33,emissive:0xFFD57A,emissiveIntensity:0});
-    const w=mesh(new THREE.PlaneGeometry(.34,.22),wm,c-1.1+i*.55,15.15,c+.67,g);
-    NIGHTV.push({o:null,minI:0,mat:wm});}
-  cyl(g,.05,.05,1.4,c,.9+14.8,c,0xC9D6E2);
-  antennaBlink(g,c,15.4,c);
-  return 16.6;
+  // عرض الواجهة عند ارتفاع معين
+  const wAt=y=>y<=8.2?2.4:2.4*Math.sqrt(Math.max(0,1-Math.pow((y-8.2)/6.75,2)));
+  // أضلاع زجاجية رأسية على الوجهين
+  for(let xi=-1.8;xi<=1.81;xi+=.6){
+    const ymax=xi>=-2.4&&xi<=2.4?(Math.abs(xi)<=1.1?9.6:8.2+6.75*Math.sqrt(Math.max(0,1-Math.pow(Math.abs(xi)/2.4,2)))):0;
+    for(const zf of [1.13,-1.13]){
+      bx(g,.07,Math.max(.5,ymax-.6),.05,c+xi,1.5,c+zf,0x93A9BC,{cast:false});
+    }
+  }
+  // أحزمة طوابق أفقية
+  for(let y=2.6;y<13;y+=2.1){
+    const w2=wAt(y)*2*.96;
+    if(w2<1)continue;
+    for(const zf of [1.14,-1.14])
+      bx(g,w2,.09,.04,c,y+1.1,c+zf,0x7E93A6,{cast:false});
+  }
+  // القوس الذهبي: أنبوب يتتبع المكافئ على الوجهين
+  const arcPts=[];
+  for(let u=0;u<=12;u++){
+    const t2=u/12;
+    const px=(1-t2)*(1-t2)*-1.15+2*t2*(1-t2)*0+t2*t2*1.15;
+    const py2=(1-t2)*(1-t2)*14.1+2*t2*(1-t2)*9.4+t2*t2*14.1;
+    arcPts.push(new THREE.Vector3(px,py2+1.1,0));
+  }
+  for(const zf of [1.08,-1.08]){
+    const crv=new THREE.CatmullRomCurve3(arcPts.map(p=>new THREE.Vector3(c+p.x,p.y,c+zf)));
+    mesh(new THREE.TubeGeometry(crv,24,.07,8),M3(0xD9BC7E,{ph:1,sh:70,e:0xC9A227,ei:.15}),0,0,0,g);
+  }
+  // نوافذ ليلية متفرقة
+  for(let i=0;i<16;i++){
+    const y=1.8+Math.random()*10.5, w2=wAt(y);
+    const x=(Math.random()*2-1)*(w2-.35);
+    const wm2=new THREE.MeshLambertMaterial({color:0x1A242E,emissive:0xFFD57A,emissiveIntensity:0});
+    mesh(new THREE.PlaneGeometry(.3,.42),wm2,c+x,y+1.1,c+(i%2?1.155:-1.155),g).rotation.y=i%2?0:Math.PI;
+    NIGHTV.push({o:null,minI:0,mat:wm2});
+  }
+  // جسر المشاهدة السماوي
+  bx(g,3.1,.46,1.34,c,1.1+14.05,c,0x8FA6BC);
+  bx(g,3.2,.09,1.42,c,1.1+14.5,c,0xD9BC7E,{cast:false});
+  for(let i=0;i<5;i++){const wm2=new THREE.MeshLambertMaterial({color:0x222b33,emissive:0xFFD57A,emissiveIntensity:0});
+    mesh(new THREE.PlaneGeometry(.34,.22),wm2,c-1.1+i*.55,15.3,c+.7,g);
+    NIGHTV.push({o:null,minI:0,mat:wm2});}
+  cyl(g,.05,.05,1.4,c,1.1+14.8,c,0xC9D6E2);
+  antennaBlink(g,c,15.6,c);
+  return 17;
 },
 m4(g){ // بيت نصيف: رواشين بارزة على جدار أبيض
   const c=T3;
@@ -1854,9 +1939,16 @@ function rebuildEnv(){
   const R=mulRnd(1234+ci*971+sz*57);
   const cx0=(off+sz/2)*T3, L=sz*T3, x0=off*T3, z0=off*T3;
   /* السور الحجري حول المدينة مع بوابة أمامية */
-  const wm=new THREE.MeshLambertMaterial({map:wallTex()});
-  const wallSeg=(w,d,x,z)=>{const b=bx(ENVG,w,.62,d,x,0,z,0,{mat:wm});
-    bx(ENVG,w+.06,.09,d+.06,x,.62,z,0xE8D8B0,{cast:false});return b;};
+  const wallMat=len=>{
+    const t=wallTex().clone();
+    t.wrapS=t.wrapT=THREE.RepeatWrapping;
+    t.repeat.set(Math.max(1,len/1.7),1);
+    t.needsUpdate=true;
+    return new THREE.MeshLambertMaterial({map:t});
+  };
+  const wallSeg=(w,d,x,z)=>{
+    const b=bx(ENVG,w,.8,d,x,0,z,0,{mat:wallMat(Math.max(w,d))});
+    bx(ENVG,w+.08,.11,d+.08,x,.8,z,0xE8D8B0,{cast:false});return b;};
   const gW=3.6, gz=z0+L+.45, gxA=cx0-gW/2, gxB=cx0+gW/2;
   wallSeg(L+1.2,.35,cx0,z0-.45);
   wallSeg(.35,L+1.2,x0-.45,z0+L/2);
@@ -1864,8 +1956,8 @@ function rebuildEnv(){
   wallSeg(gxA-(x0-.6),.35,(x0-.6+gxA)/2,gz);
   wallSeg((x0+L+.6)-gxB,.35,(gxB+x0+L+.6)/2,gz);
   for(const [px,pz] of [[x0-.45,z0-.45],[x0+L+.45,z0-.45],[x0-.45,z0+L+.45],[x0+L+.45,z0+L+.45]]){
-    bx(ENVG,.6,1,.6,px,0,pz,0,{mat:wm});
-    cone(ENVG,.42,.4,px,1,pz,0xC9AE6B,{seg:4,ry:Math.PI/4});
+    bx(ENVG,.7,1.25,.7,px,0,pz,0,{mat:wallMat(1)});
+    cone(ENVG,.5,.5,px,1.25,pz,0xC9AE6B,{seg:4,ry:Math.PI/4});
   }
   // عمودا البوابة وعلمان
   for(const gx of [gxA,gxB]){
@@ -1890,12 +1982,13 @@ function rebuildEnv(){
     bx(ENVG,.5,.08,.12,lx-s*.22,2.6,lz,0x5A5F63);
     lampAt(ENVG,lx-s*.42,2.55,lz,0xFFE9B0,.34);
   }
-  /* كثبان رملية محيطة */
-  for(let i=0;i<13;i++){
-    const a=R()*Math.PI*2, r=L*.75+14+R()*46;
+  /* كثبان رملية محيطة — تتكاثر مع كبر المدينة */
+  const NDUNE=10+Math.floor(L/7);
+  for(let i=0;i<NDUNE;i++){
+    const a=R()*Math.PI*2, r=L*.78+12+R()*(30+L*.9);
     const dx=cx0+Math.cos(a)*r, dz=(off+sz/2)*T3+Math.sin(a)*r;
     if(Math.abs(dx-cx0)<3.4&&dz>gz)continue; // لا تسد الطريق
-    const d=new THREE.Mesh(new THREE.SphereGeometry(6+R()*13,10,8),
+    const d=new THREE.Mesh(new THREE.SphereGeometry(6+R()*(10+L*.14),10,8),
       new THREE.MeshLambertMaterial({color:i%2?0xE2CD9E:0xD5BE8C}));
     d.scale.set(1+R()*.9,.16+R()*.12,1+R()*.6);
     d.rotation.y=R()*3;
@@ -1912,8 +2005,8 @@ function rebuildEnv(){
     ENVG.add(d);
   }
   /* صخور متناثرة */
-  for(let i=0;i<6;i++){
-    const a=R()*Math.PI*2, r=L*.72+8+R()*30;
+  for(let i=0;i<5+Math.floor(L/10);i++){
+    const a=R()*Math.PI*2, r=L*.75+6+R()*(22+L*.6);
     const bxx=cx0+Math.cos(a)*r, bz=(off+sz/2)*T3+Math.sin(a)*r;
     for(let j=0;j<2+Math.floor(R()*2);j++){
       const rk=new THREE.Mesh(new THREE.IcosahedronGeometry(.5+R()*.9,0),
@@ -1924,8 +2017,9 @@ function rebuildEnv(){
     }
   }
   /* واحات نخيل */
-  for(let i=0;i<4;i++){
-    const a=.6+i*1.55+R()*.5, r=L*.72+8+R()*18;
+  const NPALM=4+Math.floor(L/14);
+  for(let i=0;i<NPALM;i++){
+    const a=.6+i*(Math.PI*2/NPALM)+R()*.5, r=L*.75+6+R()*(14+L*.4);
     const px=cx0+Math.cos(a)*r, pz=(off+sz/2)*T3+Math.sin(a)*r;
     const gr=new THREE.Mesh(new THREE.CircleGeometry(2.6+R()*1.4,14),
       new THREE.MeshLambertMaterial({color:0xC9C08A}));
@@ -1952,7 +2046,7 @@ function rebuildScene(){
   const c=city(),off=cityOff(c),sz=c.size;
   // أرض المدينة المفتوحة + شبكة
   const pt=paveTex();
-  pt.wrapS=pt.wrapT=THREE.RepeatWrapping;pt.repeat.set(sz/2,sz/2);
+  pt.wrapS=pt.wrapT=THREE.RepeatWrapping;pt.repeat.set(sz/4,sz/4);
   const own=new THREE.Mesh(new THREE.PlaneGeometry(sz*T3,sz*T3),
     new THREE.MeshLambertMaterial({map:pt}));
   own.rotation.x=-Math.PI/2;
