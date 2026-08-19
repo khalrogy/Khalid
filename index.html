@@ -762,6 +762,13 @@ const TW2=60,TH2=30,FLOOR=26;
 const CAM={x:0,y:0,z:0.92}; // بقايا توافقية فقط
 /* ---------- المشهد ثلاثي الأبعاد ---------- */
 const T3=4; // حجم البلاطة بالوحدات
+window.addEventListener('unhandledrejection',ev=>{
+  const el=document.getElementById('errChip');
+  if(!el||el.style.display!=='none')return;
+  const r=ev.reason||{};
+  el.textContent='⚠️ '+(r.message||r||'خطأ غير معروف');
+  el.style.display='block';
+});
 window.addEventListener('error',ev=>{
   const el=document.getElementById('errChip');
   if(!el||el.style.display!=='none')return;
@@ -1961,7 +1968,7 @@ function rebuildEnv(){
   }
   // عمودا البوابة وعلمان
   for(const gx of [gxA,gxB]){
-    bx(ENVG,.5,1.5,.5,gx,0,gz,0,{mat:wm});
+    bx(ENVG,.5,1.5,.5,gx,0,gz,0,{mat:wallMat(1)});
     flag3(ENVG,gx,1.6,gz,1);
   }
   bx(ENVG,gW+.5,.22,.4,cx0,1.5,gz,0xC9AE6B);
