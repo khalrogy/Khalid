@@ -2928,7 +2928,7 @@ C.addEventListener('pointermove',e=>{
     }
     CTRL.moved2=true;
     ORB.dist=clamp(CTRL.p2.dist0*CTRL.p2.d0/d,10,95); // زوم بؤري
-    if(CTRL.p2.mode==='r')ORB.yaw=CTRL.p2.yaw0-da;    // دوران حول محور Y
+    if(CTRL.p2.mode==='r')ORB.yaw=CTRL.p2.yaw0+da;    // دوران يتبع لفّة الأصابع
     reAnchor(CTRL.p2.anchor,mx,my); // النقطة بين إصبعيك تظل مثبتة
     if(CTRL.p2.mode==='r'&&!window.__rotHint&&Math.abs(da)>.5){window.__rotHint=1;buzz(10);
       toast('🔄 لفّ إصبعيك لتدوير المدينة — وتنسجم الزاوية تلقائياً');}
