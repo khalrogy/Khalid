@@ -786,7 +786,7 @@ R3D.shadowMap.enabled=true;
 R3D.shadowMap.type=THREE.PCFSoftShadowMap;
 R3D.outputEncoding=THREE.sRGBEncoding;
 R3D.toneMapping=THREE.ACESFilmicToneMapping;
-R3D.toneMappingExposure=1.05;
+R3D.toneMappingExposure=1.14;
 const SCENE=new THREE.Scene();
 const CAM3=new THREE.PerspectiveCamera(46,1,0.5,900);
 const ORB={yaw:Math.PI*.25,elev:.62,dist:54,tx:GRID_MAX/2*T3,tz:GRID_MAX/2*T3};
@@ -798,7 +798,7 @@ SUN.shadow.camera.top=60;SUN.shadow.camera.bottom=-60;
 SUN.shadow.camera.far=300;SUN.shadow.bias=-0.0006;
 SUN.shadow.camera.updateProjectionMatrix();
 SCENE.add(SUN);SCENE.add(SUN.target);
-const HEMI=new THREE.HemisphereLight(0xbfd9ff,0x8a6f4a,.7);SCENE.add(HEMI);
+const HEMI=new THREE.HemisphereLight(0xCFE4FF,0xC9A87A,.72);SCENE.add(HEMI);
 const AMB3L=new THREE.AmbientLight(0xffffff,.18);SCENE.add(AMB3L);
 SCENE.fog=new THREE.FogExp2(0xE8D9B8,0.0027);
 HEMI.groundColor=new THREE.Color(0xC9B183);
@@ -1060,48 +1060,92 @@ function thobeGeo(){ // ثوب مخروطي أنيق بالمخرطة
   _THOBE=new THREE.LatheGeometry(pts,14);
   return _THOBE;
 }
+let _THOBE2=null,_ABAYA=null;
+function bodyGeo(abaya){
+  if(abaya&&_ABAYA)return _ABAYA;
+  if(!abaya&&_THOBE2)return _THOBE2;
+  const prof=abaya
+    ?[[.03,0],[.34,.02],[.35,.12],[.3,.5],[.27,.78],[.24,.88],[.15,.97],[.12,1]]
+    :[[.03,0],[.3,.02],[.31,.1],[.26,.42],[.24,.66],[.3,.8],[.29,.88],[.15,.96],[.13,1]];
+  const pts=prof.map(([r,h])=>new THREE.Vector2(r,h*.98));
+  const geo=new THREE.LatheGeometry(pts,16);
+  if(abaya)_ABAYA=geo;else _THOBE2=geo;
+  return geo;
+}
+function faceTexP(){
+  return makeTex('face',64,64,(x2)=>{
+    x2.fillStyle='rgba(0,0,0,0)';
+    x2.fillStyle='#1E1512';
+    x2.beginPath();x2.ellipse(20,26,4.2,5.4,0,0,7);x2.fill();
+    x2.beginPath();x2.ellipse(44,26,4.2,5.4,0,0,7);x2.fill();
+    x2.fillStyle='#fff';
+    x2.beginPath();x2.arc(21.5,24.5,1.5,0,7);x2.fill();
+    x2.beginPath();x2.arc(45.5,24.5,1.5,0,7);x2.fill();
+    x2.strokeStyle='#2A1B12';x2.lineWidth=2.6;x2.lineCap='round';
+    x2.beginPath();x2.moveTo(14,17);x2.quadraticCurveTo(20,14.5,26,17);x2.stroke();
+    x2.beginPath();x2.moveTo(38,17);x2.quadraticCurveTo(44,14.5,50,17);x2.stroke();
+    x2.strokeStyle='#8A5A3E';x2.lineWidth=2;
+    x2.beginPath();x2.arc(32,38,5,.25*Math.PI,.75*Math.PI);x2.stroke();
+  });
+}
 function person3(g,x,z,opt={}){
   const pg=new THREE.Group();pg.position.set(x,0,z);
-  const thobeC=opt.shirt||0xF7F4EC;
-  const white=(thobeC===0xF7F4EC||thobeC===0xF2F7FA);
-  // الثوب
-  const robe=mesh(thobeGeo(),M3(thobeC),0,0,0,pg);
-  // الرأس والوجه
-  const head=new THREE.Group();head.position.y=1.06;pg.add(head);
-  sph(head,.155,0,0,0,0xC68A55);
-  bx(head,.09,.07,.03,0,-.09,.135,0x3A2B20,{cast:false}); // اللحية
-  // الشماغ: قماش يغطي الرأس وينسدل خلفاً
-  const gm=white?new THREE.MeshLambertMaterial({map:ghutraTex()}):M3(0xF6F3EC);
-  const cap=mesh(new THREE.SphereGeometry(.175,12,8,0,Math.PI*2,0,Math.PI*.55),gm,0,.02,0,head);
-  const drape=mesh(new THREE.ConeGeometry(.19,.34,8,1,true),gm,0,-.12,-.06,head);
-  drape.rotation.x=.35;
-  const ag=mesh(new THREE.TorusGeometry(.145,.026,6,14),M3(0x151515),0,.1,0,head);
-  ag.rotation.x=Math.PI/2;ag.scale.z=1.15;
-  // الذراعان بأكتاف
+  const abaya=!!opt.abaya;
+  const thobeC=abaya?0x22242A:(opt.shirt||0xF7F4EC);
+  const white=!abaya&&(thobeC===0xF7F4EC||thobeC===0xF2F7FA);
+  const robe=mesh(bodyGeo(abaya),M3(thobeC),0,0,0,pg);
+  robe.scale.setScalar(1.06);
+  // الرأس بوجه معبّر
+  const head=new THREE.Group();head.position.y=1.14;pg.add(head);
+  sph(head,.185,0,0,0,0xD9A06B);
+  const face=mesh(new THREE.PlaneGeometry(.3,.3),
+    new THREE.MeshBasicMaterial({map:faceTexP(),transparent:true}),0,-.005,.176,head);
+  if(!abaya)bx(head,.12,.09,.05,0,-.13,.13,0x33241A,{cast:false}); // اللحية
+  if(abaya){
+    const hj=mesh(new THREE.SphereGeometry(.21,14,10,0,Math.PI*2,0,Math.PI*.62),
+      M3(opt.shirt||0x6E4E96),0,.02,0,head);
+    mesh(new THREE.ConeGeometry(.2,.34,10,1,true),M3(opt.shirt||0x6E4E96),0,-.16,-.05,head).rotation.x=.3;
+  }else{
+    const gm=white?new THREE.MeshLambertMaterial({map:ghutraTex()}):M3(0xF6F3EC);
+    mesh(new THREE.SphereGeometry(.2,14,10,0,Math.PI*2,0,Math.PI*.52),gm,0,.03,0,head);
+    const dr=mesh(new THREE.ConeGeometry(.21,.36,10,1,true),gm,0,-.13,-.07,head);
+    dr.rotation.x=.35;
+    for(const s of [-1,1]){
+      const sd=mesh(new THREE.BoxGeometry(.05,.24,.14),gm,s*.17,-.1,.02,head);
+      sd.rotation.z=s*.18;
+    }
+    const ag1=mesh(new THREE.TorusGeometry(.16,.026,6,16),M3(0x151515),0,.1,0,head);
+    ag1.rotation.x=Math.PI/2;
+    const ag2=mesh(new THREE.TorusGeometry(.155,.024,6,16),M3(0x151515),0,.06,0,head);
+    ag2.rotation.x=Math.PI/2;
+  }
+  // ذراعان بأكمام وكفوف
   const mkArm=(sx)=>{
-    const a=new THREE.Group();a.position.set(sx*.24,.86,0);pg.add(a);
-    const ar=cyl(a,.045,.055,.42,0,0,0,thobeC);
-    ar.geometry=ar.geometry.clone();ar.geometry.translate(0,-.21,0);
-    a.rotation.z=sx*.18;
-    sph(a,.05,0,-.44,0,0xC68A55);
+    const a=new THREE.Group();a.position.set(sx*.27,.92,0);pg.add(a);
+    const ar=cyl(a,.05,.06,.44,0,0,0,thobeC);
+    ar.geometry=ar.geometry.clone();ar.geometry.translate(0,-.22,0);
+    cyl(a,.062,.062,.05,0,-.445,0,abaya?0x33363E:0xEDE9DE);
+    sph(a,.052,0,-.47,0,0xD9A06B);
+    a.rotation.z=sx*.16;
     return a;
   };
   const armL=mkArm(-1),armR=mkArm(1);
-  // نعال
-  bx(pg,.09,.045,.16,-.09,0,.06,0x4A3A2C,{cast:false});
-  bx(pg,.09,.045,.16,.09,0,.06,0x4A3A2C,{cast:false});
+  bx(pg,.1,.05,.17,-.1,0,.07,0x4A3A2C,{cast:false});
+  bx(pg,.1,.05,.17,.1,0,.07,0x4A3A2C,{cast:false});
+  aoBlob(pg,.42,0,0,.3);
   if(opt.ry)pg.rotation.y=opt.ry;
   if(opt.s)pg.scale.setScalar(opt.s);
   g.add(pg);
   const seed=Math.random()*7;
-  pg.userData.walk=0; // ١=مشية نشطة
+  pg.userData.walk=0;
   ANIMS.push((t,dt)=>{
     const wk=pg.userData.walk;
-    pg.position.y=Math.sin(t*(wk?7:2)+seed)*(wk?.045:.02);
-    pg.rotation.z=wk?Math.sin(t*7+seed)*.05:0;
-    armR.rotation.x=opt.work?(-.95+Math.sin(t*4+seed)*.35):Math.sin(t*(wk?7:1.6)+seed)*(wk?.55:.12);
-    armL.rotation.x=Math.sin(t*(wk?7:1.6)+seed+Math.PI)*(wk?.55:.12);
-    head.rotation.y=wk?0:Math.sin(t*.7+seed)*.3;
+    pg.position.y=Math.sin(t*(wk?7.5:2)+seed)*(wk?.05:.02);
+    pg.rotation.z=wk?Math.sin(t*7.5+seed)*.05:0;
+    pg.rotation.x=wk?.06:0;
+    armR.rotation.x=opt.work?(-.95+Math.sin(t*4+seed)*.35):Math.sin(t*(wk?7.5:1.6)+seed)*(wk?.6:.12);
+    armL.rotation.x=Math.sin(t*(wk?7.5:1.6)+seed+Math.PI)*(wk?.6:.12);
+    head.rotation.y=wk?0:Math.sin(t*.7+seed)*.28;
   });
   return pg;
 }
@@ -1145,6 +1189,7 @@ function car3(g,x,z,c,opt={}){
     wheels.push(wg);
   }
   cg.userData.wheels=wheels;
+  aoBlob(cg,.95,0,0,.3);
   if(opt.stripe)bx(cg,.8,.09,1.64,0,.32,0,opt.stripe);
   if(opt.ry)cg.rotation.y=opt.ry;
   g.add(cg);return cg;
@@ -1161,6 +1206,43 @@ function carDrive(cg,vx,vz,dt){ // توجيه صحيح + دوران عجلات
   for(const w of cg.userData.wheels||[])w.rotation.x+=sp*dt/.16;
 }
 /* ---- خامات جدارية مزخرفة ---- */
+const _FMC={};
+function hsl2rgb(h,s,l){
+  const f=n=>{const k=(n+h*12)%12;
+    return l-s*Math.min(l,1-l)*Math.max(-1,Math.min(k-3,9-k,1));};
+  return [f(0),f(8),f(4)];
+}
+function rgb2hsl(r,g,b){
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;
+  if(mx===mn)return [0,0,l];
+  const d=mx-mn,s=l>.5?d/(2-mx-mn):d/(mx+mn);
+  let h=mx===r?((g-b)/d+(g<b?6:0)):mx===g?((b-r)/d+2):((r-g)/d+4);
+  return [h/6,s,l];
+}
+function facadeMat(c){
+  if(_FMC[c])return _FMC[c];
+  const r=((c>>16)&255)/255,g2=((c>>8)&255)/255,b=(c&255)/255;
+  let [h,s,l]=rgb2hsl(r,g2,b);
+  s=Math.min(1,s*1.22+.02);
+  const cv=document.createElement('canvas');cv.width=64;cv.height=128;
+  const x2=cv.getContext('2d');
+  const top=hsl2rgb(h,s,Math.min(.95,l*1.14));
+  const mid=hsl2rgb(h,s,l);
+  const bot=hsl2rgb(h,s,l*.78);
+  const gr=x2.createLinearGradient(0,0,0,128);
+  const css=v=>`rgb(${v.map(x=>Math.round(x*255)).join(',')})`;
+  gr.addColorStop(0,css(top));gr.addColorStop(.55,css(mid));gr.addColorStop(1,css(bot));
+  x2.fillStyle=gr;x2.fillRect(0,0,64,128);
+  for(let i=0;i<160;i++){
+    x2.fillStyle=Math.random()<.5?'rgba(255,255,255,.05)':'rgba(0,0,0,.05)';
+    x2.fillRect(Math.random()*64,Math.random()*128,1.6,1.6);
+  }
+  x2.fillStyle='rgba(0,0,0,.16)';x2.fillRect(0,120,64,8);   // قاعدة أغمق
+  x2.fillStyle='rgba(255,255,255,.16)';x2.fillRect(0,0,64,4); // إفريز فاتح
+  const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;
+  const m=new THREE.MeshLambertMaterial({map:t});
+  _FMC[c]=m;return m;
+}
 function mudMat(tri=6){
   const t=makeTex('mud'+tri,256,128,(x2)=>{
     x2.fillStyle='#C98F5C';x2.fillRect(0,0,256,128);
@@ -1176,14 +1258,34 @@ function mudMat(tri=6){
 }
 function glassMat(){return M3(0xAFD3E8,{ph:1,sh:120,op:.92});}
 /* ---- محل عام قابل للتخصيص ---- */
+function shopGlassTex(){
+  return makeTex('shopGl',128,64,(x2)=>{
+    const gr=x2.createLinearGradient(0,0,0,64);
+    gr.addColorStop(0,'#DDEBF4');gr.addColorStop(.6,'#AFCBDC');gr.addColorStop(1,'#7E9CB0');
+    x2.fillStyle=gr;x2.fillRect(0,0,128,64);
+    x2.fillStyle='rgba(255,255,255,.4)';
+    x2.beginPath();x2.moveTo(6,64);x2.lineTo(40,0);x2.lineTo(58,0);x2.lineTo(24,64);x2.closePath();x2.fill();
+    x2.fillStyle='#4A4038';
+    for(let x=0;x<128;x+=26)x2.fillRect(x,0,4,64);
+    x2.fillRect(0,0,128,4);x2.fillRect(0,60,128,4);
+  });
+}
 function makeShop(g,o){
   const w=o.w||3.4,d=o.d||3,h=o.h||2.7,cx=T3/2,cz=T3/2;
-  bx(g,w,h,d,cx,0,cz,o.c1,{recv:true});
-  // زجاج الواجهة والباب
-  const gl=mesh(new THREE.PlaneGeometry(w*.86,h*.55),glassMat(),cx,h*.32,cz+d/2+.03,g);
-  bx(g,w*.2,h*.6,.06,cx,0,cz+d/2+.05,0x2E241C);
-  // اللوحة العلوية
+  bx(g,w,h,d,cx,0,cz,0,{mat:facadeMat(o.c1),recv:true});
+  bx(g,w+.14,.16,d+.14,cx,0,cz,shadeHex(o.c1,-.3));            // قاعدة
+  bx(g,w+.12,.1,d+.12,cx,h-.02,cz,0xF2ECDD,{cast:false});      // إفريز
+  bx(g,w-.3,.06,d-.3,cx,h+.06,cz,shadeHex(o.c1,-.4),{cast:false}); // سطح
+  // زجاج الواجهة بقواطع وباب بإطار
+  mesh(new THREE.PlaneGeometry(w*.86,h*.55),
+    new THREE.MeshLambertMaterial({map:shopGlassTex()}),cx,h*.34,cz+d/2+.03,g);
+  bx(g,w*.24,h*.62,.05,cx,0,cz+d/2+.04,0xF2ECDD);
+  bx(g,w*.18,h*.56,.05,cx,0,cz+d/2+.06,0x4A3A2C);
+  sph(g,.03,cx-w*.06,h*.28,cz+d/2+.1,0xC9A227);
+  // اللوحة العلوية بإطار مزدوج
   bx(g,w+.1,h*.24,d*.2,cx,h-h*.12,cz+d/2-d*.1+.06,o.c2);
+  bx(g,w+.16,.05,.06,cx,h-h*.24,cz+d/2+.08,0xF2ECDD,{cast:false});
+  bx(g,w+.16,.05,.06,cx,h-.02,cz+d/2+.08,0xF2ECDD,{cast:false});
   labelSprite(g,(o.ic||'')+' '+(o.label||''),cx,h+.55,cz+d/2+.2,2.9);
   if(o.awn)canopy(g,w+.4,1.15,cx,h*.62,cz+d/2+.55,o.awnC||'#D9453A');
   if(o.f&&o.f>2)win4(g,w,d,h*.62,h*.3,3,1);
@@ -1194,13 +1296,23 @@ function makeShop(g,o){
 function makeTower(g,o){
   const cx=T3/2*(o.sz||1),cz=cx;
   const pw=o.pw||3.7;
-  if(o.pod!==false)bx(g,pw,o.podH||1,pw,cx,0,cz,o.podC||o.c,{recv:true});
+  const py=o.pod===false?0:(o.podH||1);
+  if(o.pod!==false){
+    bx(g,pw,o.podH||1,pw,cx,0,cz,0,{mat:facadeMat(o.podC||o.c),recv:true});
+    bx(g,pw+.12,.08,pw+.12,cx,py-.04,cz,0xF2ECDD,{cast:false});
+    bx(g,pw+.16,.14,pw+.16,cx,0,cz,shadeHex(o.podC||o.c,-.3));
+  }
   const w=o.w||2.6,h=o.h||9;
-  bx(g,w,h,w,cx,o.pod===false?0:(o.podH||1),cz,o.c,{ph:o.ph});
-  const rows=o.rows||Math.round(h/1.2),cols=o.cols||3,y0=(o.pod===false?0:(o.podH||1))+.25;
+  bx(g,w,h,w,cx,py,cz,0,{mat:facadeMat(o.c)});
+  for(const [sx,sz2] of [[-1,-1],[1,-1],[1,1],[-1,1]])
+    bx(g,.12,h,.12,cx+sx*w/2,py,cz+sz2*w/2,shadeHex(o.c,.18),{cast:false});
+  bx(g,w+.14,.12,w+.14,cx,py+h,cz,0xE9E2D2,{cast:false});      // حاجز السطح
+  bx(g,w*.42,.5,w*.42,cx-w*.12,py+h,cz+w*.1,shadeHex(o.c,-.25)); // قلب الخدمات
+  bx(g,.4,.26,.32,cx+w*.22,py+h,cz-w*.2,0xC4CDD3);
+  const rows=o.rows||Math.round(h/1.2),cols=o.cols||3,y0=py+.25;
   win4Sized(g,w,h*.92,cx,cz,y0,cols,rows);
-  if(o.crown)o.crown(g,{cx,cz,top:(o.pod===false?0:(o.podH||1))+h,w});
-  return (o.pod===false?0:(o.podH||1))+h;
+  if(o.crown)o.crown(g,{cx,cz,top:py+h,w});
+  return py+h;
 }
 function win4Sized(g,w,hh,cx,cz,y0,cols,rows){
   winPlane(g,w-.12,hh,cx,y0+hh/2,cz+w/2+.02,0,cols,rows);
@@ -1655,129 +1767,196 @@ m1(g){ // المصمك: أسوار طينية، ٤ أبراج أسطوانية،
   palm3(g,.6,7.2,1);
   return 7;
 },
-m2(g){ // الفيصلية: هرم زجاجي بأضلاع ذهبية وكرة مضيئة
-  const c=T3, H2=14.2, R2=3.4, base=1.5;
-  // منصة مدرجة
-  bx(g,7.2,.6,7.2,c,0,c,0xD8DFE6,{recv:true});
-  bx(g,6.2,.5,6.2,c,.6,c,0xCBD4DC);
-  bx(g,5.2,.4,5.2,c,1.1,c,0xE2E8EE);
-  // مدخل مقوس
-  bx(g,2.2,1.3,.5,c,1.5,c+2.5,0x8FA6BC);
-  cyl(g,1.1,1.1,.5,c,2.8,c+2.5,0x8FA6BC).rotation.x=Math.PI/2;
-  // واجهة الهرم: خامة زجاج بنوافذ نهار/ليل
-  const fDay=makeTex('fslD',128,256,(x2)=>{
-    const gr=x2.createLinearGradient(0,256,0,0);
-    gr.addColorStop(0,'#7E99AE');gr.addColorStop(.5,'#A9C2D4');gr.addColorStop(1,'#D4E4EE');
-    x2.fillStyle=gr;x2.fillRect(0,0,128,256);
-    x2.strokeStyle='rgba(50,70,90,.5)';x2.lineWidth=1.6;
-    for(let x=8;x<128;x+=12){x2.beginPath();x2.moveTo(x,0);x2.lineTo(x,256);x2.stroke();}
-    x2.strokeStyle='rgba(40,60,80,.55)';x2.lineWidth=2.2;
-    for(let y=14;y<256;y+=17){x2.beginPath();x2.moveTo(0,y);x2.lineTo(128,y);x2.stroke();}
-    x2.fillStyle='rgba(255,255,255,.28)';
-    x2.beginPath();x2.moveTo(0,256);x2.lineTo(52,0);x2.lineTo(84,0);x2.lineTo(30,256);x2.closePath();x2.fill();
+m2(g){ // الفيصلية: شرائح أفقية، تقاطعات X، وتاج مشبك بكرة داكنة
+  const c=T3, base=1.5, Hs=11.6, Ht=16.6, R2=2.9;
+  const rTop=R2*(1-Hs/Ht);
+  // منصة مدرجة بحزام رقعة الشطرنج (كما الواجهة الحقيقية)
+  bx(g,7.2,.55,7.2,c,0,c,0xD8DFE6,{recv:true});
+  const chk=makeTex('chk',128,32,(x2)=>{
+    for(let i=0;i<8;i++)for(let j=0;j<2;j++){
+      x2.fillStyle=(i+j)%2?'#B99E6E':'#EFE7D2';
+      x2.fillRect(i*16,j*16,16,16);}
   });
-  const fNight=makeTex('fslN',128,256,(x2)=>{
-    x2.fillStyle='#141E28';x2.fillRect(0,0,128,256);
-    for(let y=14;y<256;y+=17)for(let x=8;x<128;x+=12){
-      if(((x*7+y*13)%23)<8){x2.fillStyle='#FFD57A';x2.fillRect(x-4,y-6,9,12);}
-    }
+  bx(g,6.1,.55,6.1,c,.55,c,0,{mat:new THREE.MeshLambertMaterial({map:chk})});
+  bx(g,5,.4,5,c,1.1,c,0xE4EAF0);
+  bx(g,1.9,1.15,.5,c,1.1,c+2.35,0x8FA6BC); // المدخل
+  // واجهة الشرائح الأفقية نهاراً وليلاً
+  const lvD=makeTex('lvD',96,256,(x2)=>{
+    x2.fillStyle='#E9EEF3';x2.fillRect(0,0,96,256);
+    for(let y=2;y<256;y+=4){x2.fillStyle='rgba(120,138,152,.55)';x2.fillRect(0,y,96,1.4);}
+    for(let y=0;y<256;y+=42){x2.fillStyle='#7E8E9C';x2.fillRect(0,y,96,3);}
+    const gr=x2.createLinearGradient(0,0,96,0);
+    gr.addColorStop(0,'rgba(0,0,0,.14)');gr.addColorStop(.5,'rgba(255,255,255,.2)');gr.addColorStop(1,'rgba(0,0,0,.14)');
+    x2.fillStyle=gr;x2.fillRect(0,0,96,256);
   });
-  const fm=new THREE.MeshPhongMaterial({map:fDay,shininess:80,specular:0x8899AA});
-  WINSW.push({mat:fm,day:fDay,night:fNight});
-  const py=new THREE.Mesh(new THREE.ConeGeometry(R2,H2,4),fm);
-  py.position.set(c,base+H2/2,c);py.rotation.y=Math.PI/4;
-  py.castShadow=true;g.add(py);
-  // أضلاع ذهبية على الحواف الأربع
-  const eLen=Math.hypot(R2,H2);
+  const lvN=makeTex('lvN',96,256,(x2)=>{
+    x2.fillStyle='#121A22';x2.fillRect(0,0,96,256);
+    for(let y=2;y<256;y+=4){
+      x2.fillStyle=((y*13)%17)<9?'rgba(255,213,122,.8)':'rgba(50,64,76,.7)';
+      x2.fillRect(4,y,88,1.5);}
+  });
+  const fm=new THREE.MeshPhongMaterial({map:lvD,shininess:35,specular:0x667788});
+  WINSW.push({mat:fm,day:lvD,night:lvN});
+  const solid=new THREE.Mesh(new THREE.CylinderGeometry(rTop,R2,Hs,4,1),fm);
+  solid.position.set(c,base+Hs/2,c);solid.rotation.y=Math.PI/4;
+  solid.castShadow=true;g.add(solid);
+  // حواف بيضاء على الأركان الأربعة
+  const eLen=Math.hypot(R2-rTop,Hs);
   for(let i=0;i<4;i++){
-    const a=Math.PI/4+i*Math.PI/2;
-    const bxp=c+Math.cos(a)*R2, bzp=c+Math.sin(a)*R2;
-    const rib=cyl(g,.07,.09,eLen,0,0,0,0xD9BC7E,{ph:1,sh:60});
-    rib.position.set((bxp+c)/2,base+H2/2,(bzp+c)/2);
-    const dir=new THREE.Vector3(c-bxp,H2,c-bzp).normalize();
-    rib.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
+    const a=i*Math.PI/2;
+    const bx2=c+Math.cos(a)*R2, bz2=c+Math.sin(a)*R2;
+    const tx2=c+Math.cos(a)*rTop, tz2=c+Math.sin(a)*rTop;
+    const rib=cyl(g,.06,.08,eLen,0,0,0,0xF4F7FA);
+    rib.position.set((bx2+tx2)/2,base+Hs/2,(bz2+tz2)/2);
+    rib.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),
+      new THREE.Vector3(tx2-bx2,Hs,tz2-bz2).normalize());
   }
-  // أحزمة أفقية فولاذية
-  for(let i=1;i<6;i++){
-    const hy=base+H2*i/6, w2=R2*(1-i/6)*1.42+.1;
-    const band=bx(g,w2,.12,w2,c,hy,c,0x6E8296);
-    band.rotation.y=Math.PI/4;
-  }
-  // الكرة الذهبية بمطعم The Globe
-  const ball=sph(g,1.15,c,base+H2*.83,c,0xF2C14E,{ph:1,sh:100,e:0xF2B23E,ei:.28});
-  const ring=mesh(new THREE.TorusGeometry(1.15,.06,8,24),M3(0xC9A227),c,base+H2*.83,c,g);
-  ring.rotation.x=Math.PI/2.6;
-  lampAt(g,c,base+H2*.83,c,0xFFCE63,1.7);
-  // الفانوس والقمة
-  bx(g,1,1,1,c,base+H2-.4,c,0x9FB3C4).rotation.y=Math.PI/4;
-  cone(g,.3,1.5,c,base+H2+.5,c,0x5F7B96,{ry:Math.PI/4,seg:4});
-  cyl(g,.03,.03,1.2,c,base+H2+1.9,c,0xC9D6E2);
-  return 18;
-},
-m3(g){ // برج المملكة: زجاج فضي وقوس ذهبي وجسر سماوي
-  const c=T3;
-  // منصة مدرجة ومدخل
-  bx(g,7,.6,7,c,0,c,0xD6D0C4,{recv:true});
-  bx(g,5.6,.5,5.6,c,.6,c,0xC8C2B6);
-  bx(g,2.4,1.1,.5,c,1.1,c+2.6,0x8FA6BC);
-  const sh=new THREE.Shape();
-  sh.moveTo(-2.4,0);sh.lineTo(-2.4,8.2);
-  sh.bezierCurveTo(-2.4,12.6,-1.1,14.6,0,14.8);
-  sh.bezierCurveTo(1.1,14.6,2.4,12.6,2.4,8.2);
-  sh.lineTo(2.4,0);sh.closePath();
-  const hole=new THREE.Path();
-  hole.moveTo(-1.15,14.1);
-  hole.quadraticCurveTo(0,9.4,1.15,14.1);
-  hole.lineTo(-1.15,14.1);
-  sh.holes.push(hole);
-  const geo=new THREE.ExtrudeGeometry(sh,{depth:2.1,bevelEnabled:true,bevelSize:.1,bevelThickness:.1,bevelSegments:2,curveSegments:18});
-  const tw=mesh(geo,M3(0xCBD9E6,{ph:1,sh:130}),c,1.1,c+1.05,g);
-  tw.rotation.y=Math.PI;
-  // عرض الواجهة عند ارتفاع معين
-  const wAt=y=>y<=8.2?2.4:2.4*Math.sqrt(Math.max(0,1-Math.pow((y-8.2)/6.75,2)));
-  // أضلاع زجاجية رأسية على الوجهين
-  for(let xi=-1.8;xi<=1.81;xi+=.6){
-    const ymax=xi>=-2.4&&xi<=2.4?(Math.abs(xi)<=1.1?9.6:8.2+6.75*Math.sqrt(Math.max(0,1-Math.pow(Math.abs(xi)/2.4,2)))):0;
-    for(const zf of [1.13,-1.13]){
-      bx(g,.07,Math.max(.5,ymax-.6),.05,c+xi,1.5,c+zf,0x93A9BC,{cast:false});
+  // تقاطعات X الإنشائية على الأوجه الأربعة في ثلاثة مستويات
+  const rAt=y=>R2+(rTop-R2)*(y/Hs);
+  for(const fy of [.16,.45,.72]){
+    const y=base+Hs*fy, r=rAt(Hs*fy), fw=r*1.05, off=r*.72;
+    for(let f=0;f<4;f++){
+      const a=Math.PI/4+f*Math.PI/2;
+      const fx=c+Math.cos(a)*off, fz=c+Math.sin(a)*off;
+      for(const s of [1,-1]){
+        const bar=bx(g,fw,.07,.06,0,0,0,0xF4F7FA,{cast:false});
+        bar.position.set(fx,y,fz);
+        bar.rotation.y=a+Math.PI/2;
+        bar.rotation.z=s*.5;
+      }
     }
   }
-  // أحزمة طوابق أفقية
-  for(let y=2.6;y<13;y+=2.1){
-    const w2=wAt(y)*2*.96;
-    if(w2<1)continue;
-    for(const zf of [1.14,-1.14])
-      bx(g,w2,.09,.04,c,y+1.1,c+zf,0x7E93A6,{cast:false});
+  /* التاج: هيكل مشبك مفتوح يحتضن الكرة الداكنة */
+  const cH=Ht-Hs;
+  for(let i=0;i<4;i++){
+    const a=i*Math.PI/2;
+    const bx2=c+Math.cos(a)*rTop, bz2=c+Math.sin(a)*rTop;
+    const rl=Math.hypot(rTop,cH);
+    const rib=cyl(g,.05,.06,rl,0,0,0,0xE8EDF2);
+    rib.position.set((bx2+c)/2,base+Hs+cH/2,(bz2+c)/2);
+    rib.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),
+      new THREE.Vector3(c-bx2,cH,c-bz2).normalize());
   }
-  // القوس الذهبي: أنبوب يتتبع المكافئ على الوجهين
-  const arcPts=[];
-  for(let u=0;u<=12;u++){
-    const t2=u/12;
-    const px=(1-t2)*(1-t2)*-1.15+2*t2*(1-t2)*0+t2*t2*1.15;
-    const py2=(1-t2)*(1-t2)*14.1+2*t2*(1-t2)*9.4+t2*t2*14.1;
-    arcPts.push(new THREE.Vector3(px,py2+1.1,0));
+  for(const fu of [.22,.5,.76]){
+    const rr=rTop*(1-fu), s=rr/.707;
+    if(s>.2)bx(g,s,.06,s,c,base+Hs+cH*fu,c,0xDFE6EC,{cast:false});
   }
-  for(const zf of [1.08,-1.08]){
-    const crv=new THREE.CatmullRomCurve3(arcPts.map(p=>new THREE.Vector3(c+p.x,p.y,c+zf)));
-    mesh(new THREE.TubeGeometry(crv,24,.07,8),M3(0xD9BC7E,{ph:1,sh:70,e:0xC9A227,ei:.15}),0,0,0,g);
+  // الكرة الداكنة (المطعم الحقيقي بني غامق) بحلقة ذهبية
+  const ball=sph(g,.98,c,base+Hs+cH*.36,c,0x463526,{ph:1,sh:55});
+  mesh(new THREE.TorusGeometry(.99,.05,8,22),M3(0xC9A227),c,base+Hs+cH*.36,c,g).rotation.x=Math.PI/2.4;
+  nightOnly(lampAt(g,c,base+Hs+cH*.36,c,0xFFC763,1.5));
+  cone(g,.18,.9,c,base+Ht-.4,c,0x9FB3C4,{seg:4,ry:Math.PI/4});
+  cyl(g,.02,.02,1.3,c,base+Ht+.4,c,0xC9D6E2);
+  return 19;
+},
+m3(g){ // برج المملكة: لوزي المقطع، زجاج فضي عاكس، فتحة كاتينارية حقيقية
+  const c=T3, HT=14.7;
+  bx(g,7,.6,7,c,0,c,0xD6D0C4,{recv:true});
+  bx(g,5.4,.5,5.4,c,.6,c,0xC8C2B6);
+  bx(g,2.3,1.1,.55,c,1.1,c+2.4,0x8FA6BC);
+  const wAt=y=>Math.max(1.05,2.55-1.29*Math.pow(Math.max(0,y)/HT,1.9));
+  const holeHalf=y=>y<=8.35?0:1.02*Math.sqrt(Math.min(1,(y-8.35)/5.15));
+  const dAt=y=>.52*wAt(y);
+  const lens=u=>Math.pow(Math.max(0,1-Math.pow(Math.abs(u),1.7)),1.15);
+  /* قشرة الواجهة المنحنية (نصف اللوزة) */
+  const SEGX=26,SEGY=44;
+  const geo=new THREE.PlaneGeometry(2,2,SEGX,SEGY);
+  const pos=geo.attributes.position;
+  for(let i=0;i<pos.count;i++){
+    const u=pos.getX(i), v=(pos.getY(i)+1)/2;
+    const y=v*HT, hw=wAt(y);
+    pos.setXYZ(i,u*hw,y,dAt(y)*lens(u));
   }
-  // نوافذ ليلية متفرقة
-  for(let i=0;i<16;i++){
-    const y=1.8+Math.random()*10.5, w2=wAt(y);
-    const x=(Math.random()*2-1)*(w2-.35);
-    const wm2=new THREE.MeshLambertMaterial({color:0x1A242E,emissive:0xFFD57A,emissiveIntensity:0});
-    mesh(new THREE.PlaneGeometry(.3,.42),wm2,c+x,y+1.1,c+(i%2?1.155:-1.155),g).rotation.y=i%2?0:Math.PI;
-    NIGHTV.push({o:null,minI:0,mat:wm2});
+  geo.computeVertexNormals();
+  /* خامتا الزجاج الفضي نهاراً وليلاً مع قصّ الفتحة بالشفافية */
+  const carve=(x2,W2,H2)=>{
+    x2.globalCompositeOperation='destination-out';
+    x2.beginPath();
+    for(let r=0;r<=40;r++){
+      const y=8.35+(13.5-8.35)*r/40+ (r===40?.55:0);
+      const v=Math.min(1,y/HT), hh=holeHalf(Math.min(13.5,y));
+      const px=hh/wAt(y)*(W2/2);
+      const py=H2-v*H2;
+      if(r===0)x2.moveTo(W2/2-px,py);else x2.lineTo(W2/2-px,py);
+    }
+    for(let r=40;r>=0;r--){
+      const y=8.35+(13.5-8.35)*r/40+(r===40?.55:0);
+      const v=Math.min(1,y/HT), hh=holeHalf(Math.min(13.5,y));
+      const px=hh/wAt(y)*(W2/2);
+      x2.lineTo(W2/2+px,H2-v*H2);
+    }
+    x2.closePath();x2.fill();
+    x2.globalCompositeOperation='source-over';
+  };
+  const kD=makeTex('kngD',256,512,(x2,W2,H2)=>{
+    const gr=x2.createLinearGradient(0,0,W2,0);
+    gr.addColorStop(0,'#8FA3B5');gr.addColorStop(.28,'#D8E5EE');
+    gr.addColorStop(.5,'#F2F8FC');gr.addColorStop(.72,'#C7D7E2');gr.addColorStop(1,'#8498AA');
+    x2.fillStyle=gr;x2.fillRect(0,0,W2,H2);
+    x2.strokeStyle='rgba(90,110,128,.28)';x2.lineWidth=1;
+    for(let x=6;x<W2;x+=7){x2.beginPath();x2.moveTo(x,0);x2.lineTo(x,H2);x2.stroke();}
+    x2.fillStyle='rgba(255,255,255,.16)';
+    for(let y2=40;y2<H2;y2+=86)x2.fillRect(0,y2,W2,10);
+    carve(x2,W2,H2);
+  });
+  const kN=makeTex('kngN',256,512,(x2,W2,H2)=>{
+    x2.fillStyle='#141C24';x2.fillRect(0,0,W2,H2);
+    for(let y2=10;y2<H2;y2+=13)for(let x=8;x<W2;x+=12){
+      if(((x*7+y2*11)%29)<9){x2.fillStyle='#FFD57A';x2.fillRect(x,y2,7,8);}
+      else{x2.fillStyle='#1C2731';x2.fillRect(x,y2,7,8);}
+    }
+    carve(x2,W2,H2);
+  });
+  const km=new THREE.MeshPhongMaterial({map:kD,shininess:130,specular:0xBBCCDD,
+    transparent:true,alphaTest:.5});
+  WINSW.push({mat:km,day:kD,night:kN});
+  const shellF=new THREE.Mesh(geo,km);
+  shellF.position.set(c,1.1,c);shellF.castShadow=true;g.add(shellF);
+  const shellB=new THREE.Mesh(geo,km);
+  shellB.position.set(c,1.1,c);shellB.rotation.y=Math.PI;shellB.castShadow=true;g.add(shellB);
+  /* حافتا اللوزة الجانبيتان */
+  for(const s of [-1,1]){
+    const pts=[];
+    for(let r=0;r<=16;r++){const y=r/16*HT;pts.push(new THREE.Vector3(c+s*wAt(y),1.1+y,c));}
+    mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,.05,6),
+      M3(0xEDF3F8,{ph:1,sh:90}),0,0,0,g);
   }
-  // جسر المشاهدة السماوي
-  bx(g,3.1,.46,1.34,c,1.1+14.05,c,0x8FA6BC);
-  bx(g,3.2,.09,1.42,c,1.1+14.5,c,0xD9BC7E,{cast:false});
-  for(let i=0;i<5;i++){const wm2=new THREE.MeshLambertMaterial({color:0x222b33,emissive:0xFFD57A,emissiveIntensity:0});
-    mesh(new THREE.PlaneGeometry(.34,.22),wm2,c-1.1+i*.55,15.3,c+.7,g);
-    NIGHTV.push({o:null,minI:0,mat:wm2});}
-  cyl(g,.05,.05,1.4,c,1.1+14.8,c,0xC9D6E2);
-  antennaBlink(g,c,15.6,c);
-  return 17;
+  /* إطار الفتحة: حافة داكنة + خيط ذهبي يتبعان انحناء القشرة */
+  const arcPts=side=>{
+    const a=[];
+    for(let u=0;u<=16;u++){
+      const t2=u/16;
+      const px=(1-t2)*(1-t2)*-1.02+t2*t2*1.02;
+      const py2=(1-t2)*(1-t2)*13.5+2*t2*(1-t2)*8.35+t2*t2*13.5;
+      const zz=dAt(py2)*lens(px/wAt(py2));
+      a.push(new THREE.Vector3(c+px,1.1+py2,c+side*zz));
+    }
+    return a;
+  };
+  for(const s of [1,-1]){
+    mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(arcPts(s).map(p=>p.clone().setZ(c+(p.z-c)*.96))),26,.13,8),
+      M3(0x2E3B47),0,0,0,g);
+    mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(arcPts(s).map(p=>p.clone().setZ(c+(p.z-c)*1.04))),26,.055,8),
+      M3(0xE2C685,{ph:1,sh:80,e:0xC9A227,ei:.22}),0,0,0,g);
+  }
+  /* سقف اللوزة + الجسر الأنبوبي المنحني بشبكته */
+  const cap=sph(g,1,c,1.1+HT,c,0xD8E3EC,{ph:1,sh:90});
+  cap.scale.set(wAt(HT)*1.02,.09,dAt(HT)*1.05);
+  const bp=[];
+  for(let u=0;u<=10;u++){const t2=u/10;
+    bp.push(new THREE.Vector3(c-1.55+3.1*t2,1.1+13.92+Math.sin(t2*Math.PI)*.42,c));}
+  const bcrv=new THREE.CatmullRomCurve3(bp);
+  mesh(new THREE.TubeGeometry(bcrv,22,.3,10),M3(0xC7D4DE,{ph:1,sh:110}),0,0,0,g);
+  for(let u=1;u<10;u++){const p=bcrv.getPointAt(u/10);
+    const br=bx(g,.05,.5,.05,p.x,p.y-.25,p.z,0x8FA0B0,{cast:false});
+    br.rotation.z=u%2?.5:-.5;
+    if(u%2){const wm2=new THREE.MeshLambertMaterial({color:0x25313C,emissive:0xFFD57A,emissiveIntensity:0});
+      mesh(new THREE.PlaneGeometry(.24,.2),wm2,p.x,p.y+.05,p.z+.34,g);
+      NIGHTV.push({o:null,minI:0,mat:wm2});}
+  }
+  cyl(g,.04,.04,1.2,c,1.1+HT+.3,c,0xC9D6E2);
+  antennaBlink(g,c,1.1+HT+1.4,c);
+  return 17.4;
 },
 m4(g){ // بيت نصيف: رواشين بارزة على جدار أبيض
   const c=T3;
@@ -1896,7 +2075,10 @@ function flag3(g,x,y,z,s=1){
 }
 function genericB(g,d){
   const h=Math.min(11,1.4+d.f*1.15);
-  bx(g,3.2,h,3.2,T3/2,0,T3/2,parseInt(d.c1.slice(1),16),{recv:true});
+  const c=parseInt(d.c1.slice(1),16);
+  bx(g,3.2,h,3.2,T3/2,0,T3/2,0,{mat:facadeMat(c),recv:true});
+  bx(g,3.34,.14,3.34,T3/2,0,T3/2,shadeHex(c,-.3));
+  bx(g,3.3,.08,3.3,T3/2,h-.02,T3/2,0xF2ECDD,{cast:false});
   if(d.f>2)win4(g,3.2,3.2,.5,h*.8,3,Math.min(8,d.f));
   labelSprite(g,d.ic+' '+d.nm,T3/2,h+.7,T3/2+1.7,3);
   return h;
@@ -2091,7 +2273,9 @@ function ambReset3(){
   if(countAllBuildings(S.cityIdx)<2)return;
   const rnd=()=>(off+.5+Math.random()*(c.size-1))*T3;
   for(let i=0;i<5;i++){
-    const pg=person3(AMBG,0,0,{shirt:[0xF7F4EC,0x4FA8E0,0xE05F3A,0x2E7A54,0xC9A227][i],s:.9});
+    const styles=[{shirt:0xF7F4EC},{shirt:0xF7F4EC},{shirt:0x2E7A54},
+      {abaya:1,shirt:0x6E4E96},{abaya:1,shirt:0x8A2E4A}];
+    const pg=person3(AMBG,0,0,{...styles[i],s:.92});
     pg.position.set(rnd(),0,rnd());
     PEOPLE3.list.push({pg,mode:'idle',t:Math.random()*1.5,tx:0,tz:0,key:null,sp:2+Math.random()*.9});
   }
@@ -2251,6 +2435,13 @@ function clearGhosts(){
   for(const g of GM_GH)SCENE.remove(g.g),SCENE.remove(g.t);
   GM_GH=[];
 }
+function aoBlob(g,r,x=T3/2,z=T3/2,op=.26){
+  const b=new THREE.Mesh(new THREE.CircleGeometry(r,20),
+    new THREE.MeshBasicMaterial({map:softTex(),color:0x1A140C,transparent:true,
+      opacity:op,depthWrite:false}));
+  b.rotation.x=-Math.PI/2;b.position.set(x,.018,z);
+  g.add(b);return b;
+}
 function build3D(o){
   const g=new THREE.Group();
   let h=3;
@@ -2261,6 +2452,8 @@ function build3D(o){
     }else if(o.k==='d'){h=(D3D[o.id]||(g2=>1))(g);}
     else{h=(L3D[o.id]||(g2=>{bx(g2,7,4,7,T3,0,T3,0xC9A227);return 4;}))(g);}
   }catch(err){h=genericB(g,o.k==='b'?BID[o.id]:{f:2,c1:'#999999',ic:'❔',nm:''});}
+  const sz=(o.k==='b'?BID[o.id]:o.k==='d'?DID[o.id]:MID[o.id]);
+  aoBlob(g,(sz&&sz.sz===2?T3*1.35:T3*.72),(sz&&sz.sz===2?T3:T3/2),(sz&&sz.sz===2?T3:T3/2));
   g.userData.h=h;
   return g;
 }
@@ -2578,7 +2771,7 @@ function applySky(t){
   const ang=(h-6)/12*Math.PI;
   SUN.position.set(ORB.tx+Math.cos(ang)*90,Math.max(6,Math.sin(ang)*100),ORB.tz+40);
   SUN.target.position.set(ORB.tx,0,ORB.tz);
-  SUN.intensity=.15+amb*1.05;
+  SUN.intensity=.18+amb*1.18;
   const warm=1-Math.min(1,amb*1.4);
   SUN.color.setRGB(1,1-warm*.25,1-warm*.45);
   HEMI.intensity=.22+.5*amb;
@@ -2587,7 +2780,7 @@ function applySky(t){
   R3D.setClearColor(sk);
   SCENE.fog.color.copy(sk);
   STARG.material.opacity=night;
-  const wantN=night>.45;
+  const wantN=night>.5&&amb<.4;
   if(applySky._n!==wantN){applySky._n=wantN;
     for(const w of WINSW){w.mat.map=wantN?w.night:w.day;w.mat.needsUpdate=true;}}
   for(const e of NIGHTV){
@@ -3371,8 +3564,9 @@ function buyExpand(){
   S.cash-=price;S.infra+=price;
   c.size=SIZES[SIZES.indexOf(c.size)+1];
   S.stats.exps++;
+  rebuildOcc();
   sCash();buzz([20,40,20]);
-  toast('🗺 توسّعت أرضك! صارت '+c.size+'×'+c.size);
+  toast('🗺 توسّعت أرضك! صارت '+c.size+'×'+c.size+' — شف السور وين وصل');
   closeSheet();checkMissions();checkAch();updateHUD();queueSave();
 }
 function unlockCity(ci){
